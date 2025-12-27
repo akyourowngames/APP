@@ -3355,7 +3355,7 @@ let settingsState = JSON.parse(localStorage.getItem('kai_settings') || '{}');
 function openSettings() {
     LOG.info('SETTINGS', 'Navigating to settings page');
     // Use relative path for Netlify/production compatibility
-    window.location.href = '/kai-os---tactical-settings/dist/index.html';
+    window.location.href = '/settings/';
 }
 (window as any).openSettings = openSettings;
 
