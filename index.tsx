@@ -3353,8 +3353,9 @@ let settingsState = JSON.parse(localStorage.getItem('kai_settings') || '{}');
 
 // Open settings - navigate to full-page React settings app
 function openSettings() {
-    LOG.info('SETTINGS', 'Navigating to full-page settings on port 3001');
-    window.location.href = 'http://localhost:3001';
+    LOG.info('SETTINGS', 'Navigating to settings page');
+    // Use relative path for Netlify/production compatibility
+    window.location.href = '/kai-os---tactical-settings/index.html';
 }
 (window as any).openSettings = openSettings;
 
