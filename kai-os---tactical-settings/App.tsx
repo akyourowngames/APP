@@ -19,6 +19,7 @@ import {
 import { SettingsTab } from './types';
 import ProfileSection from './components/ProfileSection';
 import SecuritySection from './components/SecuritySection';
+import DeviceSection from './components/DeviceSection';
 import TelemetrySection from './components/TelemetrySection';
 import UplinkSection from './components/UplinkSection';
 import NotificationSection from './components/NotificationSection';
@@ -85,6 +86,7 @@ const App: React.FC = () => {
     switch (activeTab) {
       case SettingsTab.PROFILE: return <ProfileSection />;
       case SettingsTab.SECURITY: return <SecuritySection />;
+      case SettingsTab.DEVICES: return <DeviceSection />;
       case SettingsTab.TELEMETRY: return <TelemetrySection />;
       case SettingsTab.UPLINK: return <UplinkSection />;
       case SettingsTab.NOTIFICATIONS: return <NotificationSection />;
@@ -102,6 +104,7 @@ const App: React.FC = () => {
     const labels: Record<SettingsTab, string> = {
       [SettingsTab.PROFILE]: 'Operator Profile',
       [SettingsTab.SECURITY]: 'Security Protocols',
+      [SettingsTab.DEVICES]: 'Device Link',
       [SettingsTab.NOTIFICATIONS]: 'Neural Alerts',
       [SettingsTab.TELEMETRY]: 'Live Telemetry',
       [SettingsTab.UPLINK]: 'Uplink Config',
@@ -168,6 +171,12 @@ const App: React.FC = () => {
 
           <div className="text-[9px] sm:text-[10px] text-zinc-500 font-bold mt-6 sm:mt-8 mb-3 sm:mb-4 ml-2 uppercase tracking-[0.15em] sm:tracking-[0.2em]">Systems</div>
 
+          <NavItem
+            icon={<Monitor size={16} />}
+            label="Device Link"
+            active={activeTab === SettingsTab.DEVICES}
+            onClick={() => handleTabChange(SettingsTab.DEVICES)}
+          />
           <NavItem
             icon={<Zap size={16} />}
             label="Uplink Config"

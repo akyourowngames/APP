@@ -2959,6 +2959,322 @@
 
     <div id="notification-area" class="fixed top-20 right-6 w-80 z-[200] space-y-3 pointer-events-none"></div>
 
+    <!-- PROJECT INTELLIGENCE MODE - Inline Script -->
+    <script>
+        // Project Mode Detection & Canvas Launch
+        window.detectAndLaunchProject = async function (message) {
+            const API_URL = 'http://localhost:5000/api/v1';
+
+            console.log('[PROJECT MODE] Starting detection for:', message);
+
+            // Show thinking indicator
+            const messagesList = document.getElementById('messages-list');
+            if (messagesList) {
+                const thinkingHTML = `
+                    <div id="project-thinking" class="msg-block" style="animation: messageAppear 0.3s ease;">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center flex-shrink-0">
+                                <i data-lucide="brain" class="w-5 h-5 text-white animate-pulse"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-xs font-mono text-white/40 mb-2">🚀 PROJECT INTELLIGENCE</div>
+                                <div class="flex items-center gap-3">
+                                    <div class="flex gap-1">
+                                        <div class="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                                        <div class="w-2 h-2 bg-purple-500 rounded-full animate-pulse" style="animation-delay: 0.2s"></div>
+                                        <div class="w-2 h-2 bg-purple-500 rounded-full animate-pulse" style="animation-delay: 0.4s"></div>
+                                    </div>
+                                    <span id="project-thinking-text" class="text-sm text-white/80">Analyzing project intent...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                messagesList.insertAdjacentHTML('beforeend', thinkingHTML);
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+                messagesList.scrollTop = messagesList.scrollHeight;
+            }
+
+            try {
+                // Step 1: Detect intent
+                const detectResp = await fetch(`${API_URL}/project/detect`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message, history: [] })
+                });
+                const detection = await detectResp.json();
+
+                console.log('[PROJECT MODE] Detection result:', detection);
+
+                // Update thinking
+                const thinkingText = document.getElementById('project-thinking-text');
+                if (thinkingText) {
+                    thinkingText.textContent = `Project detected: ${detection.suggested_type || 'analyzing...'}`;
+                }
+
+                // Step 2: Generate plan if confident
+                if (detection.is_project && detection.confidence >= 0.6) {
+                    if (thinkingText) thinkingText.textContent = 'Generating project plan...';
+
+                    const planResp = await fetch(`${API_URL}/project/plan`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ description: message, user_profile: {} })
+                    });
+                    const planData = await planResp.json();
+
+                    console.log('[PROJECT MODE] Plan generated:', planData);
+
+                    // Remove thinking
+                    const thinking = document.getElementById('project-thinking');
+                    if (thinking) {
+                        thinking.style.opacity = '0';
+                        setTimeout(() => thinking.remove(), 300);
+                    }
+
+                    // Add message to chat
+                    const plan = planData.plan;
+                    const chatHTML = `
+                        <div class="msg-block user">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                                    <i data-lucide="user" class="w-4 h-4 text-white/60"></i>
+                                </div>
+                                <div class="text-xs font-mono text-white/40">YOU</div>
+                            </div>
+                            <div class="text-sm text-white/90">${message}</div>
+                        </div>
+                        <div class="msg-block assistant">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center">
+                                    <i data-lucide="rocket" class="w-4 h-4 text-white"></i>
+                                </div>
+                                <div class="text-xs font-mono text-purple-400">PROJECT MODE</div>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="text-sm text-white/90">
+                                    I've created a structured project plan for <strong>${plan.title}</strong>! 🚀
+                                </div>
+                                <div class="bg-black/30 border border-purple-500/20 rounded-lg p-4">
+                                    <div class="grid grid-cols-2 gap-4 text-xs">
+                                        <div><div class="text-white/40 mb-1">Type</div><div class="text-white/80">${plan.project_type}</div></div>
+                                        <div><div class="text-white/40 mb-1">Tasks</div><div class="text-white/80">${plan.tasks.length} steps</div></div>
+                                        <div><div class="text-white/40 mb-1">Milestones</div><div class="text-white/80">${plan.milestones.length} phases</div></div>
+                                        <div><div class="text-white/40 mb-1">Progress</div><div class="text-purple-400 font-bold">${plan.progress_percent || 0}%</div></div>
+                                    </div>
+                                </div>
+                                <div class="text-xs text-white/60">Tech Stack: ${plan.tech_stack.map(t => `<span class="px-2 py-1 bg-purple-500/20 border border-purple-500/30 rounded text-purple-300">${t}</span>`).join(' ')}</div>
+                               <div class="p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg">
+                                    <div class="text-xs text-white/90 mb-2 font-semibold">📋 Next Steps:</div>
+                                    ${plan.tasks.slice(0, 5).map((t, i) => `<div class="text-xs text-white/70 mb-1">• ${t.text}</div>`).join('')}
+                                    ${plan.tasks.length > 5 ? `<div class="text-xs text-white/50 mt-2">...and ${plan.tasks.length - 5} more tasks</div>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    messagesList.insertAdjacentHTML('beforeend', chatHTML);
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                    messagesList.scrollTop = messagesList.scrollHeight;
+
+                } else {
+                    // Not a project - remove thinking and fall back to normal chat
+                    const thinking = document.getElementById('project-thinking');
+                    if (thinking) thinking.remove();
+                    console.log('[PROJECT MODE] Not a project or low confidence');
+                    // Send to normal chat instead
+                    const input = document.getElementById('messageInput');
+                    if (input) {
+                        input.value = message;
+                        window.sendMessage();
+                    }
+                }
+
+            } catch (error) {
+                console.error('[PROJECT MODE] Error:', error);
+                const thinking = document.getElementById('project-thinking');
+                if (thinking) thinking.remove();
+                // Fall back to normal chat
+                const input = document.getElementById('messageInput');
+                if (input) {
+                    input.value = message;
+                    window.sendMessage();
+                }
+            }
+        };
+
+        console.log('[PROJECT MODE] ✅ Detection system loaded');
+
+        // ==================== CANVAS AUTO-LAUNCH ====================
+        // Watch for PROJECT_CANVAS marker in chat responses
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === 1) {
+                        const html = node.innerHTML || '';
+                        if (html.includes('<!--PROJECT_CANVAS:')) {
+                            console.log('[PROJECT MODE] Canvas trigger detected!');
+
+                            // Extract JSON from comment
+                            const match = html.match(/<!--PROJECT_CANVAS:(.+?)--> /);
+                            if (match) {
+                                try {
+                                    const plan = JSON.parse(match[1]);
+                                    console.log('[PROJECT MODE] Opening canvas with plan:', plan.title);
+
+                                    // Remove the hidden comment from display
+                                    node.innerHTML = html.replace(/<!--PROJECT_CANVAS:.+?-->/g, '');
+
+                                    // Open canvas after short delay
+                                    setTimeout(() => {
+                                        openProjectCanvas(plan);
+                                    }, 500);
+                                } catch (e) {
+                                    console.error('[PROJECT MODE] Failed to parse plan:', e);
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+        });
+
+        // Start observing messages list
+        setTimeout(() => {
+            const messagesList = document.getElementById('messages-list');
+            if (messagesList) {
+                observer.observe(messagesList, { childList: true, subtree: true });
+                console.log('[PROJECT MODE] Canvas auto-launch observer active');
+            }
+        }, 2000);
+
+        // Canvas open function - CLEAN MINIMAL DESIGN with Kai Input
+        function openProjectCanvas(plan) {
+            const existing = document.getElementById('project-canvas');
+            if (existing) existing.remove();
+
+            const tasks = plan.tasks || [];
+            const techStack = plan.tech_stack || [];
+
+            const canvasHTML = `
+                <div id="project-canvas" class="fixed inset-0 z-[500] flex items-center justify-center bg-black/90 backdrop-blur-sm" style="animation: fadeIn 0.3s ease;">
+                    <style>
+                        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                        #project-canvas .task-check:hover { background: rgba(99,102,241,0.2); }
+                        #project-canvas .task-check.done { background: rgba(34,197,94,0.2); border-color: #22c55e; }
+                        #project-canvas input:focus { outline: none; border-color: #6366f1; }
+                    </style>
+                    
+                    <div class="w-full max-w-3xl max-h-[85vh] bg-[#0f0f14] border border-white/10 rounded-xl overflow-hidden flex flex-col shadow-2xl">
+                        
+                        <!-- Header - Simple -->
+                        <div class="p-5 border-b border-white/10">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <h1 class="text-xl font-semibold text-white">${plan.title || 'Your Project'}</h1>
+                                    <p class="text-sm text-white/50 mt-1">${plan.project_type ? plan.project_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) + ' Project' : ''}</p>
+                                </div>
+                                <button onclick="document.getElementById('project-canvas').remove()" class="p-1.5 hover:bg-white/10 rounded text-white/40 hover:text-white">
+                                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 5l8 8M13 5l-8 8"/></svg>
+                                </button>
+                            </div>
+                            
+                            <!-- Tech Stack -->
+                            <div class="flex gap-2 flex-wrap">
+                                ${techStack.map(t => `<span class="px-2.5 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded text-xs text-indigo-300">${t}</span>`).join('')}
+                            </div>
+                        </div>
+                        
+                        <!-- Tasks List - Scrollable -->
+                        <div class="flex-1 overflow-y-auto p-5" id="canvas-tasks">
+                            <div class="text-xs text-white/40 uppercase tracking-wide mb-3">Tasks (${tasks.length})</div>
+                            <div class="space-y-2">
+                                ${tasks.map((t, i) => `
+                                    <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg hover:bg-white/[0.07] transition-colors group">
+                                        <button class="task-check w-5 h-5 border border-white/20 rounded flex-shrink-0 mt-0.5 flex items-center justify-center transition-all" 
+                                                onclick="this.classList.toggle('done'); this.innerHTML = this.classList.contains('done') ? '<svg width=12 height=12 stroke=#22c55e fill=none stroke-width=2><path d=\\'M3 6l3 3 5-5\\'/></svg>' : ''">
+                                        </button>
+                                        <div class="flex-1">
+                                            <span class="text-sm text-white/80">${t.text}</span>
+                                            <div class="text-[10px] text-white/30 mt-1 uppercase">${t.layer || ''}</div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        
+                        <!-- Kai Input - Ask for help -->
+                        <div class="p-4 border-t border-white/10 bg-black/30">
+                            <div class="text-xs text-white/40 mb-2">💬 Ask Kai about this project</div>
+                            <div class="flex gap-2">
+                                <input type="text" 
+                                       id="canvas-kai-input"
+                                       placeholder="How do I start with the first task?" 
+                                       class="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/30">
+                                <button onclick="sendCanvasMessage()" 
+                                        class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm text-white font-medium transition-colors">
+                                    Ask
+                                </button>
+                            </div>
+                            <div id="canvas-response" class="mt-3 text-sm text-white/70 hidden"></div>
+                        </div>
+                        
+                        <!-- Simple Footer -->
+                        <div class="px-5 py-3 border-t border-white/10 flex justify-between items-center bg-black/20">
+                            <span class="text-xs text-white/30">Phase: ${plan.current_phase || 'Planning'}</span>
+                            <button onclick="document.getElementById('project-canvas').remove()" 
+                                    class="px-4 py-2 bg-white/10 hover:bg-white/15 rounded-lg text-sm text-white/70 transition-colors">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', canvasHTML);
+
+            // Focus the input
+            setTimeout(() => {
+                const input = document.getElementById('canvas-kai-input');
+                if (input) input.focus();
+            }, 100);
+        }
+
+        // Send message from canvas to Kai
+        async function sendCanvasMessage() {
+            const input = document.getElementById('canvas-kai-input');
+            const responseDiv = document.getElementById('canvas-response');
+            if (!input || !input.value.trim()) return;
+
+            const message = input.value.trim();
+            input.value = '';
+            responseDiv.classList.remove('hidden');
+            responseDiv.innerHTML = '<span class="text-indigo-400">Thinking...</span>';
+
+            try {
+                const response = await fetch('http://localhost:5000/api/v1/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: `[Project Help] ${message}`,
+                        session_id: 'canvas-session'
+                    })
+                });
+                const data = await response.json();
+                responseDiv.innerHTML = data.response || 'No response';
+            } catch (e) {
+                responseDiv.innerHTML = '<span class="text-red-400">Error getting response</span>';
+            }
+        }
+
+        // Enter key support for canvas input
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.target.id === 'canvas-kai-input') {
+                sendCanvasMessage();
+            }
+        });
+
+        window.openProjectCanvas = openProjectCanvas;
+    </script>
+
     <script src="index.tsx" type="module"></script>
     <script>
         // Initialize Lucide icons
@@ -2978,13 +3294,17 @@
                 input.style.height = 'auto';
                 input.style.height = Math.min(input.scrollHeight, 200) + 'px';
             });
-            input.addEventListener('keydown', (e) => {
+            // SIMPLIFIED: Let backend SmartTrigger handle all detection
+            input.addEventListener('keydown', async (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     window.sendMessage();
                 }
             });
         }
+
+        // Project mode is now handled purely in chat - no canvas needed
+        console.log('[PROJECT MODE] ✅ AI-powered project planning active (in-chat display)');
     </script>
 
 </body>

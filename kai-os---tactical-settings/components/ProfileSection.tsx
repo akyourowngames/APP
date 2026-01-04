@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, Save, Check, Loader2, Upload } from 'lucide-react';
+import { Camera, Save, Check, Loader2, Upload, Monitor, Copy, Clock, Wifi, WifiOff, Plus, RefreshCw } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
@@ -56,6 +56,16 @@ const ProfileSection: React.FC = () => {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Device pairing state
+  const [devices, setDevices] = useState<{ device_id: string; name: string; is_online: boolean; last_seen: string }[]>([]);
+  const [pairingCode, setPairingCode] = useState<string | null>(null);
+  const [pairingExpiry, setPairingExpiry] = useState<number>(0);
+  const [codeCopied, setCodeCopied] = useState(false);
+  const [loadingDevices, setLoadingDevices] = useState(false);
+  const [userToken, setUserToken] = useState<string | null>(null);
+
+  const API_BASE = 'http://localhost:5000';
 
   // Listen for auth state and load profile from Firebase
   useEffect(() => {
@@ -123,6 +133,81 @@ const ProfileSection: React.FC = () => {
 
     return () => unsubscribe();
   }, []);
+
+  // Fetch user's devices
+  const fetchDevices = async () => {
+    setLoadingDevices(true);
+    try {
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (userToken) headers['Authorization'] = `Bearer ${userToken}`;
+
+      const res = await fetch(`${API_BASE}/agent/devices`, { headers });
+      const data = await res.json();
+      if (data.success) setDevices(data.devices || []);
+    } catch (err) {
+      console.error('Error fetching devices:', err);
+    } finally {
+      setLoadingDevices(false);
+    }
+  };
+
+  // Get token and fetch devices when userId changes
+  useEffect(() => {
+    if (userId) {
+      auth.currentUser?.getIdToken().then(token => {
+        setUserToken(token);
+      });
+      fetchDevices();
+    }
+  }, [userId]);
+
+  // Generate pairing code
+  const generatePairingCode = async () => {
+    try {
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (userToken) headers['Authorization'] = `Bearer ${userToken}`;
+
+      const res = await fetch(`${API_BASE}/agent/generate-pairing-code`, {
+        method: 'POST',
+        headers
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPairingCode(data.code);
+        setPairingExpiry(600);
+      }
+    } catch (err) {
+      console.error('Error generating code:', err);
+    }
+  };
+
+  // Countdown timer for pairing code
+  useEffect(() => {
+    if (pairingExpiry > 0) {
+      const timer = setInterval(() => {
+        setPairingExpiry(prev => {
+          if (prev <= 1) { setPairingCode(null); return 0; }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [pairingExpiry]);
+
+  // Copy pairing code
+  const copyCode = () => {
+    if (pairingCode) {
+      navigator.clipboard.writeText(pairingCode);
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   // Handle profile image upload to Supabase
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -373,6 +458,62 @@ const ProfileSection: React.FC = () => {
           placeholder="Tell KAI about yourself..."
         ></textarea>
         <p className="text-[8px] text-zinc-600 mt-0.5">KAI will remember this context in conversations</p>
+      </div>
+
+      {/* Device Link Section */}
+      <div className="border-t border-indigo-900/20 pt-5 sm:pt-6 mt-6">
+        <h3 className="text-[11px] sm:text-xs font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-2 mb-4">
+          <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+          Device Link
+          <button onClick={fetchDevices} className="ml-auto text-zinc-500 hover:text-indigo-400">
+            <RefreshCw size={12} className={loadingDevices ? 'animate-spin' : ''} />
+          </button>
+        </h3>
+
+        {/* Connected Devices */}
+        <div className="space-y-2 mb-4">
+          {devices.length === 0 ? (
+            <p className="text-[10px] text-zinc-500 text-center py-4 bg-zinc-900/50 rounded border border-zinc-800">
+              No devices connected yet
+            </p>
+          ) : (
+            devices.map((device) => (
+              <div key={device.device_id} className="flex items-center gap-3 p-3 bg-[#0a0a0f] border border-indigo-900/30 rounded-lg">
+                <Monitor size={16} className={device.is_online ? 'text-green-400' : 'text-zinc-500'} />
+                <div className="flex-1">
+                  <span className="text-sm font-bold">{device.name}</span>
+                  <span className={`ml-2 text-[9px] px-1.5 py-0.5 rounded ${device.is_online ? 'bg-green-500/20 text-green-400' : 'bg-zinc-800 text-zinc-500'}`}>
+                    {device.is_online ? 'ONLINE' : 'OFFLINE'}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Pair New Device */}
+        {pairingCode ? (
+          <div className="bg-indigo-950/30 border border-indigo-500/30 rounded-lg p-4 text-center">
+            <p className="text-[10px] text-indigo-400 uppercase tracking-widest mb-2">Pairing Code (expires in {formatTime(pairingExpiry)})</p>
+            <div className="flex items-center justify-center gap-2">
+              <code className="text-2xl font-mono font-bold tracking-[0.2em] text-white bg-black/50 px-4 py-2 rounded border border-indigo-500/50">
+                {pairingCode}
+              </code>
+              <button onClick={copyCode} className="p-2 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 rounded">
+                {codeCopied ? <Check size={16} className="text-green-400" /> : <Copy size={16} className="text-indigo-400" />}
+              </button>
+            </div>
+            <p className="text-[9px] text-zinc-500 mt-3">Run: <code className="text-green-400">python -m LocalAgent.agent --register {pairingCode}</code></p>
+          </div>
+        ) : (
+          <button
+            onClick={generatePairingCode}
+            className="w-full flex items-center justify-center gap-2 p-3 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 rounded-lg transition-all"
+          >
+            <Plus size={16} className="text-indigo-400" />
+            <span className="text-xs font-bold text-indigo-400 uppercase tracking-wide">Pair New Device</span>
+          </button>
+        )}
       </div>
 
       {/* Save Button - Fixed positioning */}

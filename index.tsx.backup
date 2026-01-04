@@ -44,14 +44,7 @@ try {
 
 // 📡 API Configuration
 const USE_CLOUD_API = false; // Set to true for production (Render), false for local dev
-// Dynamic BASE_URL: uses same host as frontend (works for both localhost and mobile access)
-const getBaseUrl = () => {
-    if (USE_CLOUD_API) return 'https://kai-api-nxxv.onrender.com';
-    // Use same hostname as frontend, but port 5000 for API
-    const host = window.location.hostname;
-    return `http://${host}:5000`;
-};
-const BASE_URL = getBaseUrl();
+const BASE_URL = USE_CLOUD_API ? 'https://kai-api-nxxv.onrender.com' : 'http://localhost:5000';
 const API_URL = `${BASE_URL}/api/v1`;
 
 // 📦 Supabase Configuration
@@ -5506,10 +5499,10 @@ function addProjectModeMessage(userMessage: string, plan: any) {
     messagesList.scrollTop = messagesList.scrollHeight;
 }
 
-// Inject button on load - DISABLED (project mode now works automatically in chat)
-// setTimeout(() => {
-//     injectProjectModeButton();
-// }, 1000);
+// Inject button on load
+setTimeout(() => {
+    injectProjectModeButton();
+}, 1000);
 
 // HOOK INTO MESSAGE SENDING
 // Listen for Enter key in message input
@@ -5542,3 +5535,6 @@ LOG.info('PROJECT', 'Message interceptor loaded - project mode active!');
 
 
 LOG.info('PROJECT', 'Message interceptor loaded - project mode active!');
+
+ 
+ 
