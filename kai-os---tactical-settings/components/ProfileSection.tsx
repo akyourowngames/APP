@@ -65,7 +65,10 @@ const ProfileSection: React.FC = () => {
   const [loadingDevices, setLoadingDevices] = useState(false);
   const [userToken, setUserToken] = useState<string | null>(null);
 
-  const API_BASE = 'http://localhost:5000';
+  // Use production API for deployed site, localhost for local dev
+  const API_BASE = window.location.hostname === 'localhost'
+    ? 'http://localhost:5000'
+    : 'https://kai-api-nxxv.onrender.com';
 
   // Listen for auth state and load profile from Firebase
   useEffect(() => {
