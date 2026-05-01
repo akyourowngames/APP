@@ -1,20 +1,77 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Kai App
 
-# Run and deploy your AI Studio app
+![GitHub last commit](https://img.shields.io/github/last-commit/akyourowngames/=flat-square)
+![GitHub repo size](https://img.shields.io/github/repo-size/akyourowngames/=flat-square)
+![GitHub stars](https://img.shields.io/github/stars/akyourowngames/=flat-square)
+![Built with TypeScript](https://img.shields.io/badge/built%20with-TypeScript-111827?style=flat-square)
 
-This contains everything you need to run your app locally.
+> A TypeScript frontend interface for Kai assistant workflows, tools, and productivity automation.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1TJXZavDf5o-FpVfxTH8RHbvf7vt2UkH2
+## Overview
+
+Kai App gives the assistant ecosystem a modern frontend surface. It is positioned as a UI layer for chat, productivity actions, and automation workflows around the Kai assistant idea.
+
+## Highlights
+
+- Assistant-focused frontend concept
+- TypeScript app foundation
+- Good base for chat and workflow UI
+- Portfolio-friendly product direction
+- Can grow into a dashboard for AI tools
+
+## Built For
+
+- AI assistant frontend experiments
+- React / TypeScript portfolio work
+- Productivity dashboards
+- Automation control surfaces
+
+## Tech Stack
+
+- TypeScript
+- React / Next.js style frontend
+- Frontend state and UI components
+- Assistant workflow design
+
+## Quick Start
+
+```powershell
+git clone https://github.com/akyourowngames/APP.git
+cd APP
+npm install
+```
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
+```powershell
+npm run dev
+Open http://localhost:3000
+```
 
+## Project Structure
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+```text
+src/ or app/  application source
+public/       static assets
+package.json  scripts and dependencies
+README.md     project documentation
+```
+
+## Roadmap
+
+- Rename repository to Kai-App for better SEO
+- Add screenshots and workflow examples
+- Document API integration points
+- Add UI state coverage and accessibility checks
+
+## Notes
+
+- Recommended rename: Kai-App.
+
+## Contributing
+
+Contributions, ideas, and polish suggestions are welcome. Open an issue with a clear problem statement or create a focused pull request.
+
+## Author
+
+Built by [Krish](https://github.com/akyourowngames). If this project helped you or sparked an idea, consider starring the repo.
